@@ -60,6 +60,7 @@ public class MainActivity extends Activity {
     private ProgressBar barra;
     private String hostApp;
     private String ultimaUrl;
+    private WebView webImpressao;
 
     private ValueCallback<Uri[]> retornoArquivo;
     private Uri fotoCamera;
@@ -376,6 +377,28 @@ public class MainActivity extends Activity {
         pm.print(nome, ad, new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build());
     }
 
+    private void imprimirDocumento(String html, String titulo) {
+        final String nome = (titulo == null || titulo.isEmpty()) ? "Plataforma da Preceptoria" : titulo;
+        webImpressao = new WebView(this);
+        webImpressao.getSettings().setJavaScriptEnabled(false);
+        webImpressao.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView v, String url) {
+                PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
+                if (pm != null) {
+                    pm.print(nome, v.createPrintDocumentAdapter(nome),
+                        new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape()).build());
+                }
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
+                return true;
+            }
+        });
+        webImpressao.loadDataWithBaseURL(BuildConfig.APP_URL, html, "text/html", "UTF-8", null);
+    }
+
     /** Funções chamadas pelo JavaScript da página (window.AndroidApp). */
     private class Ponte {
         @JavascriptInterface
@@ -386,6 +409,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void imprimir(String titulo) {
             runOnUiThread(() -> MainActivity.this.imprimir(titulo));
+        }
+
+        /** Imprime um documento HTML à parte (ex.: quadro de escalas, que roda em um iframe). */
+        @JavascriptInterface
+        public void imprimirHtml(String html, String titulo) {
+            runOnUiThread(() -> imprimirDocumento(html, titulo));
         }
 
         @JavascriptInterface
