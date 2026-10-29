@@ -1,0 +1,68 @@
+# Gera o APK Android da Plataforma da Preceptoria.
+# Roda a cada envio de alterações e também manualmente (Actions > Gerar APK da Plataforma > Run workflow).
+# O APK fica em Releases e em Artifacts da execução.
+name: Gerar APK da Plataforma
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Endereço da plataforma'
+        required: false
+        default: 'https://joaoinovaaps-maker.github.io/Preceptoria/'
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  APP_URL: ${{ inputs.url || 'https://joaoinovaaps-maker.github.io/Preceptoria/' }}
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir endereço
+        run: |
+          case "$APP_URL" in
+            https://*) echo "Endereço: $APP_URL" ;;
+            *) echo "::error::O endereço precisa começar com https://"; exit 1 ;;
+          esac
+
+      - name: Instalar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Compilar APK
+        run: gradle assembleRelease --no-daemon --stacktrace -PappUrl="$APP_URL" -PversionCode=${{ github.run_number }}
+
+      - name: Preparar arquivo
+        run: cp app/build/outputs/apk/release/app-release.apk "Preceptoria-v1.0.${{ github.run_number }}.apk"
+
+      - name: Guardar APK (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Preceptoria-v1.0.${{ github.run_number }}
+          path: Preceptoria-v1.0.${{ github.run_number }}.apk
+
+      - name: Publicar em Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Preceptoria v1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          body: |
+            APK da Plataforma da Preceptoria (Programa de Residência Multiprofissional em Saúde da Família).
+            Endereço carregado: ${{ env.APP_URL }}
+            Instalação: baixe o arquivo .apk no celular Android e autorize "instalar apps desconhecidos" quando o sistema pedir.
+          files: Preceptoria-v1.0.${{ github.run_number }}.apk
