@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Endereço da plataforma (GitHub Pages ou conta institucional). Pode ser trocado na geração do APK.
+def appUrl = (project.findProperty('appUrl') ?: 'https://SEU-USUARIO.github.io/SEU-REPOSITORIO/').toString()
+def vCode = (project.findProperty('versionCode') ?: '1').toString().toInteger()
+
+android {
+    namespace 'br.residencia.preceptoria'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'br.residencia.preceptoria'
+        minSdk 24
+        targetSdk 34
+        versionCode vCode
+        versionName "1.0.${vCode}"
+        buildConfigField 'String', 'APP_URL', "\"${appUrl}\""
+    }
+
+    buildFeatures { buildConfig true }
+
+    signingConfigs {
+        release {
+            storeFile file('preceptoria.jks')
+            storePassword System.getenv('KS_PASS') ?: 'Preceptoria2026'
+            keyAlias 'preceptoria'
+            keyPassword System.getenv('KS_PASS') ?: 'Preceptoria2026'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+}
